@@ -1,9 +1,9 @@
 #include "tcpsocketserver.h"
 
 
-tcpSocketServer::tcpSocketServer(QObject *parent) : QObject(parent)
+tcpSocketServer::tcpSocketServer(QObject *parent, QString ip, QString port) : QObject(parent)
 {
-    QString ipAddress;
+  /*  QString ipAddress;
     QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
     // use the first non-localhost IPv4 address
     for (int i = 0; i < ipAddressesList.size(); ++i)
@@ -21,12 +21,13 @@ tcpSocketServer::tcpSocketServer(QObject *parent) : QObject(parent)
         ipAddress = QHostAddress(QHostAddress::LocalHost).toString();
 
 
+*/
 
-
+    qDebug()<<(QString)"attempt to create tcp server @ "+ip+":"+port;
 
     tcpServer = new QTcpServer(this);
 
-    if (!tcpServer->listen(QHostAddress(ipAddress),60000))
+    if (!tcpServer->listen(QHostAddress(ip),port.toInt()))
     {
         qDebug()<<"could not create tcp socket";
         return;
@@ -34,7 +35,7 @@ tcpSocketServer::tcpSocketServer(QObject *parent) : QObject(parent)
     else
         qDebug()<<"starting tcp server";
 
-     qDebug()<<"The server is running on IP:"<<ipAddress<<" port:"<<tcpServer->serverPort();
+     qDebug()<<"The server is running on IP:"<<ip<<" port:"<<tcpServer->serverPort();
 
     connect(tcpServer,SIGNAL(newConnection()),this,SLOT(gotNewConnection()));
 

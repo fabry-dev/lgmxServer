@@ -14,7 +14,7 @@ class tcpSocketServer : public QObject
 {
     Q_OBJECT
 public:
-    explicit tcpSocketServer(QObject *parent = nullptr);
+    explicit tcpSocketServer(QObject *parent = nullptr, QString ip="192.168.4.1",QString port="6000");
 
 private:
     QTcpServer *tcpServer;
