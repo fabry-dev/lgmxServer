@@ -8,7 +8,7 @@ tcpSocketServer::tcpSocketServer(QObject *parent,QString ip,qint64 port) : QTcpS
     {
 
         qDebug()<<"tcp server not connected, retrying in 5s";
-        QThread::sleep(5000);
+        QThread::sleep(5);
     }
 
     qDebug()<<"tcp server running on "<<serverAddress().toString()<<":"<<serverPort();
