@@ -132,6 +132,7 @@ QString tcpClient::resolveMacAddress(bool *success)
 
     QString stdout = process.readAllStandardOutput();
     QStringList data = stdout.split(" ");
+
     QString mac = data[3];
 
     if(mac.size()==17)
@@ -142,6 +143,7 @@ QString tcpClient::resolveMacAddress(bool *success)
     else
     {
         *success = false;
+        qDebug()<<stdout;
         return "";
     }
 
