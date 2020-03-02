@@ -10,11 +10,12 @@ class deviceClient : public QObject
     Q_OBJECT
 public:
     explicit deviceClient(QObject *parent = nullptr);
-    ~deviceClient();
+
 
 signals:
     void writeData(QString);
-
+    void sendDataToMacs(QStringList addresses,QString data);
+    void sendDataToFunction(QString function,QString data);
 public slots:
 private slots:
     void dataReceived(QString);
