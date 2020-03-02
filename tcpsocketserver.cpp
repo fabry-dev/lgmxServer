@@ -3,15 +3,18 @@
 
 tcpSocketServer::tcpSocketServer(QObject *parent,QString ip,qint64 port) : QTcpServer(parent)
 {
-    if(listen(QHostAddress(ip),port))
-    {
-        qDebug()<<"tcp server running on "<<serverAddress().toString()<<":"<<serverPort();
 
-    }
-    else
+    while(!listen(QHostAddress(ip),port))
     {
-        qDebug()<<"tcp server not connected";
+
+        qDebug()<<"tcp server not connected, retrying in 5s";
+        QThread::sleep(5000);
     }
+
+    qDebug()<<"tcp server running on "<<serverAddress().toString()<<":"<<serverPort();
+
+
+
 }
 
 void tcpSocketServer::incomingConnection(qintptr socketDescriptor)
