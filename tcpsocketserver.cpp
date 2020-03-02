@@ -3,6 +3,29 @@
 
 tcpSocketServer::tcpSocketServer(QObject *parent,QString ip,qint64 port) : QTcpServer(parent)
 {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     if(listen(QHostAddress(ip),port))
     {
         qDebug()<<"tcp server running on "<<serverAddress().toString()<<":"<<serverPort();

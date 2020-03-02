@@ -30,6 +30,8 @@ void tcpClient::run()
     bool test = false;
     macAddress = resolveMacAddress(&test);
 
+
+    qDebug()<<"ip: "<<tcpSocket->peerAddress().toString();
     if(test)
         qDebug()<<"mac: "<<macAddress;
     else
@@ -125,15 +127,23 @@ QString tcpClient::getMacAddress(void)
 
 QString tcpClient::resolveMacAddress(bool *success)
 {
+
     QProcess process;
-    QString cmd = (QString)"arp -a "+tcpSocket->peerAddress().toString();
+    QString cmd = (QString)"arp -n "+"192.168.1.39";
     process.start(cmd.toStdString().c_str());
     process.waitForFinished(-1); // will wait forever until finished
 
     QString stdout = process.readAllStandardOutput();
-    QStringList data = stdout.split(" ");
+    QStringList data = stdout.split("\n");
 
-    QString mac = data[3];
+    if(data.size()<2)
+    {
+        *success = false;
+        return "";
+    }
+    data = ((QString)data[1]).split(" ",QString::SkipEmptyParts);
+    QString mac = data[2];
+
 
     if(mac.size()==17)
     {
@@ -147,5 +157,6 @@ QString tcpClient::resolveMacAddress(bool *success)
         qDebug()<<stdout;
         return "";
     }
+
 
 }
