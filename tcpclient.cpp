@@ -123,7 +123,7 @@ void tcpClient::writeData(QString data)
     out.setVersion(QDataStream::Qt_5_9);
     out<<data;
     tcpSocket->write(block);
-    qDebug()<<tcpSocket->localAddress().toString()<<" >> "<<data;
+    qDebug()<<tcpSocket->localAddress().toString()<<"->"<<tcpSocket->peerAddress().toString()<<" >> "<<data;
 }
 
 void tcpClient::makeClientController()
