@@ -143,6 +143,7 @@ QString tcpClient::resolveMacAddress(bool *success)
     else
     {
         *success = false;
+        qDebug()<<cmd;
         qDebug()<<stdout;
         return "";
     }
