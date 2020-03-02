@@ -79,7 +79,7 @@ void tcpClient::handleData(QString data)
         return;
     }
 
-    //qDebug()<<tcpSocket->localAddress().toString()<<" << "<<data;
+
     emit dataReceived(data);
 }
 
@@ -126,7 +126,7 @@ QString tcpClient::getMacAddress(void)
 QString tcpClient::resolveMacAddress(bool *success)
 {
     QProcess process;
-    QString cmd = (QString)"arp -a "+tcpSocket->localAddress().toString();
+    QString cmd = (QString)"arp -a "+tcpSocket->peerAddress().toString();
     process.start(cmd.toStdString().c_str());
     process.waitForFinished(-1); // will wait forever until finished
 
