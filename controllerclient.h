@@ -15,6 +15,8 @@ public:
 
 signals:
     void writeData(QString);
+    void sendDataToMacs(QStringList addresses,QString data);
+    void sendDataToFunction(QString function,QString data);
 
 private slots:
     void dataReceived(QString data);

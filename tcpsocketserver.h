@@ -19,13 +19,12 @@ public:
     explicit tcpSocketServer(QObject *parent = nullptr, QString ip="127.0.0.1", qint64 port=1000);
 
 private:
-    std::vector<tcpClient*> clients;
+    std::vector<tcpClientControl*> clients;
 private slots:
-    void broadcastData(QString data);
-    void testRead(void);
-    void ping(void);
     void incomingDisconnection(void);
-    void threadDestroyed(void);
+    void sendDataToMac(QString macAddress, QString data);
+    void sendDataToMacs(QStringList macAddresses,QString data);
+    void sendDataToFunction(QString function,QString data);
 protected:
     void incomingConnection(qintptr socketDescriptor) override;
 

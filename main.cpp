@@ -57,7 +57,7 @@ int main(int argc, char *argv[])
 
     }
 
-  tcpSocketServer *ts = new tcpSocketServer(NULL,IP,PORT.toInt());
+  new tcpSocketServer(NULL,IP,PORT.toInt());
 
     return a.exec();
 }
