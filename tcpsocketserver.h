@@ -9,20 +9,26 @@
 #include "QDebug"
 #include "qdatetime.h"
 #include "QDataStream"
+#include "tcpclient.h"
+#include "qthread.h"
 
-class tcpSocketServer : public QObject
+class tcpSocketServer : public QTcpServer
 {
     Q_OBJECT
 public:
-    explicit tcpSocketServer(QObject *parent = nullptr, QString ip="192.168.4.1",QString port="6000");
+    explicit tcpSocketServer(QObject *parent = nullptr, QString ip="127.0.0.1", qint64 port=1000);
 
 private:
-    QTcpServer *tcpServer;
-    std::vector<QTcpSocket*> clients;
+    std::vector<tcpClient*> clients;
 private slots:
-    void gotNewConnection(void);
-    void gotNewDisconnection(void);
     void broadcastData(QString data);
+    void testRead(void);
+    void ping(void);
+    void incomingDisconnection(void);
+    void threadDestroyed(void);
+protected:
+    void incomingConnection(qintptr socketDescriptor) override;
+
 
 public slots:
 };

@@ -1,95 +1,104 @@
 #include "tcpsocketserver.h"
 
 
-tcpSocketServer::tcpSocketServer(QObject *parent, QString ip, QString port) : QObject(parent)
+tcpSocketServer::tcpSocketServer(QObject *parent,QString ip,qint64 port) : QTcpServer(parent)
 {
-  /*  QString ipAddress;
-    QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
-    // use the first non-localhost IPv4 address
-    for (int i = 0; i < ipAddressesList.size(); ++i)
+    if(listen(QHostAddress(ip),port))
     {
-        if (ipAddressesList.at(i) != QHostAddress::LocalHost && ipAddressesList.at(i).toIPv4Address())
-        {
-            ipAddress = ipAddressesList.at(i).toString();
-            break;
-        }
-    }
+        qDebug()<<"tcp server running on "<<serverAddress().toString()<<":"<<serverPort();
 
-
-    // if we did not find one, use IPv4 localhost
-    if (ipAddress.isEmpty())
-        ipAddress = QHostAddress(QHostAddress::LocalHost).toString();
-
-
-*/
-
-    qDebug()<<(QString)"attempt to create tcp server @ "+ip+":"+port;
-
-    tcpServer = new QTcpServer(this);
-
-    if (!tcpServer->listen(QHostAddress(ip),port.toInt()))
-    {
-        qDebug()<<"could not create tcp socket";
-        return;
     }
     else
-        qDebug()<<"starting tcp server";
-
-     qDebug()<<"The server is running on IP:"<<ip<<" port:"<<tcpServer->serverPort();
-
-    connect(tcpServer,SIGNAL(newConnection()),this,SLOT(gotNewConnection()));
-
-
+    {
+        qDebug()<<"tcp server not connected";
+    }
 }
 
 
 
-void tcpSocketServer::gotNewConnection()
+void tcpSocketServer::incomingConnection(qintptr socketDescriptor)
 {
-    // connect(clientConnection, &QAbstractSocket::disconnected,clientConnection, &QObject::deleteLater);
+    qDebug()<<"connection";
 
-    QTcpSocket *clientConnection = tcpServer->nextPendingConnection();
-    qDebug()<<"new connection "<<clientConnection->peerAddress();
-    clients.push_back(clientConnection);
-    qDebug()<<"connected clients: "<<clients.size();
 
-    connect(clientConnection,SIGNAL(disconnected()),this,SLOT(gotNewDisconnection()));
+    QThread *clientThread = new QThread;
+
+    tcpClient * client = new tcpClient(NULL,socketDescriptor);
+    client->moveToThread(clientThread);
+
+    connect(clientThread,SIGNAL(started()),client,SLOT(run()));
+    connect(client,SIGNAL(disconnected()),this,SLOT(incomingDisconnection()));
+    //cleanup connections
+    connect(client,SIGNAL(disconnected()),clientThread,SLOT(quit()));//stop thread when client is deleted
+    connect(clientThread,SIGNAL(finished()),client,SLOT(deleteLater()));//delete client when client thread is stopped
+    connect(client,SIGNAL(destroyed()),clientThread,SLOT(deleteLater()));//delete thread when client is deleted
+
+    clients.push_back(client);//save client in the clients pool
+    clientThread->start();
+
+    qDebug()<<clients.size()<<" devices connected";
+
+
+
 }
 
 
-
-void tcpSocketServer::gotNewDisconnection()
+void tcpSocketServer::threadDestroyed(void)
 {
-  QTcpSocket *clientConnection = (QTcpSocket*)QObject::sender();
 
-  clientConnection->deleteLater();
-
-  for(int i = 0;i<clients.size();i++)
-  {
-      if(clients[i]==clientConnection)
-      {
-
-          clients.erase(clients.begin() + i);
-          break;
-      }
-
-  }
-
-  qDebug()<<"connected clients: "<<clients.size();
+    qDebug()<<"thread destroyed";
 }
+
+void tcpSocketServer::incomingDisconnection()
+{
+    tcpClient * client = (tcpClient*)QObject::sender();
+    clients.erase(std::remove(clients.begin(), clients.end(), client), clients.end());
+    qDebug()<<clients.size()<<" devices connected";
+}
+
+
+
+
+
+void tcpSocketServer::testRead(void)
+{
+    QTcpSocket *clientConnection = (QTcpSocket *)QObject::sender();
+    QDataStream in;
+    in.setDevice(clientConnection);
+    in.setVersion(QDataStream::Qt_5_9);
+    in.startTransaction();
+
+    QString data;
+    in >> data;
+
+    if (!in.commitTransaction())
+    {
+        qDebug()<<"non commit transaction";
+        //return;
+    }
+
+    qDebug()<<clientConnection->localAddress().toString()<<" >> "<<data;
+
+}
+
+
 
 
 
 void tcpSocketServer::broadcastData(QString data)
 {
-    QByteArray block;
-    QDataStream out(&block,QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_5_9);
-    //out<<QDateTime::currentDateTime().toString("hh:mm:ss.zzz");
-    out<<data;
-    for(auto client:clients)
-        client->write(block);
 
-    qDebug()<<"<< "<<data;
+
 }
+
+void tcpSocketServer::ping(void)
+{
+
+    broadcastData("ping");
+
+}
+
+
+
+
 
