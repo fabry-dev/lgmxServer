@@ -1,7 +1,7 @@
 #include "tcpclient.h"
 
 
-tcpClientControl::tcpClientControl(QObject *parent, int socketDescriptor):QObject(parent)
+tcpClientControl::tcpClientControl(QObject *parent, int socketDescriptor,QString PATH):QObject(parent),PATH(PATH)
 {
     macAddress = "";//initial mac address is empty
     function = "";//initial function is empty
@@ -9,7 +9,7 @@ tcpClientControl::tcpClientControl(QObject *parent, int socketDescriptor):QObjec
 
     QThread *clientThread = new QThread;
 
-    client = new tcpClient(NULL,socketDescriptor);
+    client = new tcpClient(NULL,socketDescriptor,PATH);
     client->moveToThread(clientThread);
     connect(clientThread,SIGNAL(started()),client,SLOT(run()));
     connect(client,SIGNAL(disconnected()),this,SIGNAL(disconnected()));//forward disconnect signal from client to client control.
@@ -17,10 +17,12 @@ tcpClientControl::tcpClientControl(QObject *parent, int socketDescriptor):QObjec
     connect(client,SIGNAL(solvedMacAddress(QString)),this,SLOT(setMacAddress(QString)));//save the mac address in control when made available
     connect(client,SIGNAL(functionChosen(QString)),this,SLOT(setFunction(QString)));//save the client function in control when made available
     connect(client,SIGNAL(vbatRead(double)),this,SLOT(setVbat(double)));//save the batterie voltage reading when made available
-    connect(client,SIGNAL(sendDataToFunction(QString,QString)),this,SIGNAL(sendDataToFunction(QString,QString)));
-    connect(client,SIGNAL(sendDataToMacs(QStringList,QString)),this,SIGNAL(sendDataToMacs(QStringList,QString)));
+    connect(client,SIGNAL(sendDataToFunction(QString,QString)),parent,SLOT(sendDataToFunction(QString,QString)));
+    connect(client,SIGNAL(sendDataToMacs(QStringList,QString)),parent,SLOT(sendDataToMacs(QStringList,QString)));
     connect(client,SIGNAL(requestDevicesList()),this,SIGNAL(requestDevicesList()));
-
+    connect(client,SIGNAL(reloadPresets()),parent,SLOT(reloadPresets()));
+    connect(client,SIGNAL(sendPresetsList(QString,QStringList)),parent,SLOT(sendPresetList(QString,QStringList)));
+    connect(client,SIGNAL(loadPreset(QString)),parent,SLOT(loadPreset(QString)));
 
     //cleanup connections
     connect(client,SIGNAL(disconnected()),clientThread,SLOT(quit()));//stop thread when client is deleted
@@ -39,9 +41,14 @@ tcpClientControl::tcpClientControl(QObject *parent, int socketDescriptor):QObjec
 
 
 
-tcpClient::tcpClient(QObject *parent, int socketDescriptor):QObject(parent),socketDescriptor(socketDescriptor)
+tcpClient::tcpClient(QObject *parent, int socketDescriptor,QString PATH):QObject(parent),socketDescriptor(socketDescriptor),PATH(PATH)
 {
 
+}
+
+QString tcpClient::getMacAddress() const
+{
+    return macAddress;
 }
 
 
@@ -50,7 +57,7 @@ tcpClient::tcpClient(QObject *parent, int socketDescriptor):QObject(parent),sock
 void tcpClient::run()
 {
     clientFunction = NULL;
-
+    macAddress = "";
     tcpSocket = new QTcpSocket(NULL);
     if (!tcpSocket->setSocketDescriptor(socketDescriptor)) {
         emit error(tcpSocket->error());
@@ -61,7 +68,7 @@ void tcpClient::run()
     connect(tcpSocket,SIGNAL(readyRead()),this,SLOT(readData()));
 
     bool test = false;
-    QString macAddress = resolveMacAddress(&test);
+    macAddress = resolveMacAddress(&test);
 
     if(test)
     {
@@ -69,7 +76,10 @@ void tcpClient::run()
         qDebug()<<"mac address: "<<macAddress;
     }
     else
+    {
+        macAddress = "";
         qDebug()<<"mac address error";
+    }
 
 
 }
@@ -99,6 +109,8 @@ void tcpClient::readData()
 }
 
 
+
+
 void tcpClient::handleData(QString data)
 {
     if(data=="controller")
@@ -125,7 +137,7 @@ void tcpClient::writeData(QString data)
     out.setVersion(QDataStream::Qt_5_9);
     out<<data;
     tcpSocket->write(block);
-    qDebug()<<tcpSocket->localAddress().toString()<<"->"<<tcpSocket->peerAddress().toString()<<" >> "<<data;
+   // qDebug()<<tcpSocket->localAddress().toString()<<"->"<<tcpSocket->peerAddress().toString()<<" >> "<<data;
 }
 
 void tcpClient::makeClientController()
@@ -137,7 +149,7 @@ void tcpClient::makeClientController()
     }
 
     emit functionChosen("controller");
-    clientFunction = new controllerClient(this);
+    clientFunction = new controllerClient(this,PATH);
 }
 
 

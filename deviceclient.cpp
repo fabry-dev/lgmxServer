@@ -17,8 +17,8 @@ deviceClient::deviceClient(QObject *parent) : QObject(parent)
 void deviceClient::dataReceived(QString data)
 {
 
-    qDebug()<<"device <<"<<data;
-
+   // qDebug()<<"device <<"<<data;
+    qDebug()<<"device:"<<((tcpClient*)parent())->getMacAddress() << ">>"<<data;
 
 
     QStringList addresses = {};

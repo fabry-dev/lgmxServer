@@ -3,16 +3,13 @@
 
 #include "QObject"
 #include "qdebug.h"
-
+#include "tcpclient.h"
 
 class deviceClient : public QObject
 {
     Q_OBJECT
 public:
     explicit deviceClient(QObject *parent = nullptr);
-
-
-
 signals:
     void writeData(QString);
     void sendDataToMacs(QStringList addresses,QString data);

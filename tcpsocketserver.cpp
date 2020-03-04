@@ -1,8 +1,10 @@
-#include "tcpsocketserver.h"
+﻿#include "tcpsocketserver.h"
 
 
-tcpSocketServer::tcpSocketServer(QObject *parent,QString ip,qint64 port) : QTcpServer(parent)
+tcpSocketServer::tcpSocketServer(QObject *parent,QString ip,qint64 port,QString PATH) : QTcpServer(parent),PATH(PATH)
 {
+
+    reloadPresets();
 
     while(!listen(QHostAddress(ip),port))
     {
@@ -21,10 +23,8 @@ void tcpSocketServer::incomingConnection(qintptr socketDescriptor)
 {
     qDebug()<<"connection";
 
-    tcpClientControl *client = new tcpClientControl(this,socketDescriptor);
+    tcpClientControl *client = new tcpClientControl(this,socketDescriptor,PATH);
     connect(client,SIGNAL(disconnected()),this,SLOT(incomingDisconnection()));
-    connect(client,SIGNAL(sendDataToFunction(QString,QString)),this,SLOT(sendDataToFunction(QString,QString)));
-    connect(client,SIGNAL(sendDataToMacs(QStringList,QString)),this,SLOT(sendDataToMacs(QStringList,QString)));
     connect(client,SIGNAL(requestDevicesList()),this,SLOT(sendDevicesDescriptionToMacs()));
     clients.push_back(client);//save client in the clients pool
 
@@ -45,18 +45,6 @@ void tcpSocketServer::incomingDisconnection()
 
 
 
-void tcpSocketServer::getDevicesInfos(void)
-{
-
-    for(auto client:clients)
-    {
-        if(client->getFunction()=="device")
-        {
-
-        }
-    }
-
-}
 
 
 //send data to max 1 client which mac address is macAddress
@@ -66,6 +54,7 @@ void tcpSocketServer::sendDataToMac(QString macAddress,QString data)
     {
         if(client->getMacAddress() == macAddress)
         {
+            qDebug()<<client->getFunction()<<":"<<client->getMacAddress()<<"<<"<<data;
             client->sendData(data);
             return;
         }
@@ -83,6 +72,7 @@ void tcpSocketServer::sendDataToMacs(QStringList macAddresses,QString data)
         if(macAddresses.contains(client->getMacAddress()))
         {
             success = true;
+            qDebug()<<client->getFunction()<<":"<<client->getMacAddress()<<"<<"<<data;
             client->sendData(data);
         }
     }
@@ -100,6 +90,7 @@ void tcpSocketServer::sendDataToFunction(QString function,QString data)
     {
         if(client->getFunction() == function)
         {
+            qDebug()<<client->getFunction()<<":"<<client->getMacAddress()<<"<<"<<data;
             client->sendData(data);
         }
     }
@@ -127,11 +118,118 @@ void tcpSocketServer::sendDevicesDescriptionToMacs(void)
     }
     msg+="}";
 
-    if(macAddresses.size()>0)
-    {
-    qDebug()<<"device list"<<msg;
-    qDebug()<<"sending to:"<<macAddresses;
-    }
-    //qDebug()<<"request from"<<macAddresses;
     sendDataToMacs(macAddresses,msg);
+}
+
+//reload the presets from the cfg files and store them in "presetList"
+void tcpSocketServer::reloadPresets(void)
+{
+    QDir directory(PATH+"presets");
+    QStringList presets = directory.entryList(QStringList() << "*.cfg",QDir::Files);
+    presetList.clear();
+
+
+    for(auto preset:presets)
+    {
+        struct preset_t nuPreset;
+        nuPreset.name = (QString)preset.mid(0,preset.length()-4);
+
+        QFile file(PATH+"presets/"+preset);
+        if(!file.open(QIODevice::ReadOnly)) {
+            qDebug()<<"no"<<preset<<"file";
+        }
+        else
+        {
+            QTextStream in(&file);
+            nuPreset.content = in.readAll();
+            file.close();
+            presetList.push_back(nuPreset);
+        }
+    }
+
+    qDebug()<<"preset list:";
+    for(auto preset:presetList)
+    {
+        qDebug()<<preset.name<<preset.content;
+    }
+
+
+}
+
+
+//provide a list of the available presets
+void tcpSocketServer::sendPresetList(QString function,QStringList addresses)
+{
+    QString list;
+    for(auto preset:presetList)
+    {
+        list+=preset.name;
+        list+="|";
+    }
+    if(list.size()>0)
+        list = list.mid(0,list.length()-1);
+
+
+    if(function.size()>0)
+        sendDataToFunction(function,list);
+    if(addresses.size()>0)
+        sendDataToMacs(addresses,list);
+
+}
+
+
+//decode a preset
+void tcpSocketServer::loadPreset(QString presetName)
+{
+
+    struct preset_t preset;
+    bool found = false;
+    for(auto preset2:presetList)
+    {
+        if(preset2.name==presetName)
+        {
+            found = true;
+            preset = preset2;
+
+            break;
+        }
+    }
+
+    if(found)
+    {
+        QStringList addresses;
+        QString functionTarget;
+        QString payload;
+        QStringList fields = preset.content.split("|",QString::SkipEmptyParts);
+        for(QString field:fields)
+        {
+            QStringList values = field.split("=",QString::SkipEmptyParts);
+            if(values.size()==2)
+            {
+                QString paramName = values[0];
+                QString paramValue = values[1];
+                if(paramName == "target")//this parameter defines to which mac adresses the data will be forwarded
+                    addresses = paramValue.split(",",QString::SkipEmptyParts);
+                else if(paramName == "functiontarget")//the parameter defubes to which client function the data will be forwarded
+                    functionTarget = paramValue;
+                else if(paramName == "msg")
+                    payload = paramValue;
+            }
+        }
+
+        if(payload.size()>0)
+        {
+            if(addresses.size()>0)
+                sendDataToMacs(addresses,payload);
+            if(functionTarget.size()>0)
+            {
+                sendDataToFunction(functionTarget,payload);
+            }
+        }
+
+    }
+    else
+        qDebug()<<"preset "<<presetName<<"not found";
+
+
 }

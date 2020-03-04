@@ -1,11 +1,13 @@
 #include "controllerclient.h"
 
-controllerClient::controllerClient(QObject *parent) : QObject(parent)
+controllerClient::controllerClient(QObject *parent,QString PATH) : QObject(parent),PATH(PATH)
 {
     connect(parent,SIGNAL(dataReceived(QString)),this,SLOT(dataReceived(QString)));
     connect(this,SIGNAL(writeData(QString)),parent,SLOT(writeData(QString)));
     connect(this,SIGNAL(sendDataToMacs(QStringList,QString)),parent,SIGNAL(sendDataToMacs(QStringList,QString)));
     connect(this,SIGNAL(sendDataToFunction(QString,QString)),parent,SIGNAL(sendDataToFunction(QString,QString)));
+
+
 
     qDebug()<<"client is a controller";
     emit writeData("controller=YES");
@@ -28,8 +30,8 @@ void controllerClient::dataReceived(QString data)
     QString payload = "";
     QString function = "";
 
-    qDebug()<<"controller <<"<<data;
-
+    //qDebug()<<"controller <<"<<data;
+    qDebug()<<"controller:"<<((tcpClient*)parent())->getMacAddress() << ">>"<<data;
 
 
     QStringList fields = data.split("|",QString::SkipEmptyParts);
@@ -38,8 +40,62 @@ void controllerClient::dataReceived(QString data)
         if(field == "getdevices")
         {
             emit ((tcpClient*)parent())->requestDevicesList();
-            continue;
+            break;
         }
+
+        if(field == "listpresets")
+        {
+            emit ((tcpClient*)parent())->sendPresetsList("",QStringList()<<((tcpClient*)parent())->getMacAddress());
+            break;
+        }
+
+
+        if((field == "savepreset")&&(fields.size()>=3))
+        {
+            QString presetName = fields[1];
+
+
+            //let's find the 2nd "|" position which marks the beginning of the content
+            int contentStartPos ;
+            int count = 0;
+            for(contentStartPos = 0;contentStartPos<data.size();contentStartPos++)
+            {
+                if(data.at(contentStartPos)=="|")
+                    count++;
+                if(count >= 2)
+                    break;
+            }
+
+            if(contentStartPos+1>=data.size())
+                break;
+
+            QString presetContent = data.mid(contentStartPos+1);
+            QString filename = PATH+"presets/"+presetName+".cfg";
+            QFile file(filename);
+            if(!file.open(QFile::WriteOnly|QFile::Truncate))
+            {
+                qDebug()<<"cannot open file"<<filename;
+
+            }
+            else
+            {
+                QTextStream stream( &file );
+                stream << presetContent;
+                file.close();
+                qDebug()<<"preset saved";
+                emit ((tcpClient*)parent())->reloadPresets();
+            }
+
+            break;
+        }
+
+
+        if((field == "loadpreset")&&(fields.size()==2))
+        {
+            emit ((tcpClient*)parent())->loadPreset(fields[1]);
+            break;
+        }
+
 
         QStringList values = field.split("=",QString::SkipEmptyParts);
         if(values.size()==2)

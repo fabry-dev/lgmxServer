@@ -20,12 +20,13 @@ class tcpClientControl : public QObject
 {
     Q_OBJECT
 public:
-    explicit tcpClientControl(QObject *parent = nullptr,int socketDescriptor=0);
+    explicit tcpClientControl(QObject *parent = nullptr, int socketDescriptor=0, QString PATH="");
     void sendData(QString data){emit shouldSendData(data);}
     QString getMacAddress(void){return macAddress;}
     QString getFunction(void){return function;}
     double getVbat(void){return vbat;}
 private:
+    QString PATH;
     tcpClient *client;
     QString macAddress;
     QString function;
@@ -33,8 +34,6 @@ private:
 signals:
     void disconnected();
     void shouldSendData(QString);
-    void sendDataToMacs(QStringList,QString);
-    void sendDataToFunction(QString,QString);
     void requestDevicesList(void);
 
 private slots:
@@ -50,10 +49,13 @@ class tcpClient : public QObject
 {
     Q_OBJECT
 public:
-    explicit tcpClient(QObject *parent = nullptr,int socketDescriptor=0);
+    explicit tcpClient(QObject *parent = nullptr, int socketDescriptor=0, QString PATH="");
+    QString getMacAddress() const;
 
 private:
     int socketDescriptor;
+    QString PATH;
+    QString macAddress;
     QTcpSocket *tcpSocket;
     QObject *clientFunction;
     void makeClientDevice(void);
@@ -70,9 +72,13 @@ signals:
     void sendDataToMacs(QStringList,QString);
     void sendDataToFunction(QString,QString);
     void requestDevicesList(void);
+    void reloadPresets(void);
+    void sendPresetsList(QString function,QStringList addresses);
+    void loadPreset(QString preset);
 private slots:
     void readData(void);
     void writeData(QString data);
+
     void run() ;
 };
 
