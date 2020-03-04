@@ -25,6 +25,8 @@ private slots:
     void sendDataToMac(QString macAddress, QString data);
     void sendDataToMacs(QStringList macAddresses,QString data);
     void sendDataToFunction(QString function,QString data);
+    void sendDevicesDescriptionToMacs(void);
+    void getDevicesInfos(void);
 protected:
     void incomingConnection(qintptr socketDescriptor) override;
 

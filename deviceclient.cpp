@@ -2,23 +2,30 @@
 
 deviceClient::deviceClient(QObject *parent) : QObject(parent)
 {
+
     connect(parent,SIGNAL(dataReceived(QString)),this,SLOT(dataReceived(QString)));
     connect(this,SIGNAL(writeData(QString)),parent,SLOT(writeData(QString)));
     connect(this,SIGNAL(sendDataToMacs(QStringList,QString)),parent,SIGNAL(sendDataToMacs(QStringList,QString)));
     connect(this,SIGNAL(sendDataToFunction(QString,QString)),parent,SIGNAL(sendDataToFunction(QString,QString)));
+    connect(this,SIGNAL(vbattRead(double)),parent,SIGNAL(vbatRead(double)));
     qDebug()<<"client is a device";
     emit writeData("device=YES");
 }
 
 
+
 void deviceClient::dataReceived(QString data)
 {
+
+    qDebug()<<"device <<"<<data;
+
+
 
     QStringList addresses = {};
     QString payload = "";
     QString function = "";
 
-    qDebug()<<"device <<"<<data;
+
     QStringList fields = data.split("|",QString::SkipEmptyParts);
 
     for(QString field:fields)
@@ -30,10 +37,18 @@ void deviceClient::dataReceived(QString data)
             QString paramValue = values[1];
             if(paramName == "target")//this parameter defines to which mac adresses the data will be forwarded
                 addresses = paramValue.split(",",QString::SkipEmptyParts);
-            else if(paramName == "functiontarget")//the parameter defubes to which client function the data will be forwarded
+            else if(paramName == "functiontarget")//the parameter defines to which client function the data will be forwarded
                 function = paramValue;
             else if(paramName == "msg")
                 payload = paramValue;
+            else if(paramName == "vbat")
+            {
+                double vbat;bool test;
+                vbat = paramValue.toDouble(&test);
+                if((test)&&(vbat>0))
+                    emit vbattRead(vbat);
+            }
+
         }
     }
 

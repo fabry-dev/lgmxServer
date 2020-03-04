@@ -24,18 +24,23 @@ public:
     void sendData(QString data){emit shouldSendData(data);}
     QString getMacAddress(void){return macAddress;}
     QString getFunction(void){return function;}
+    double getVbat(void){return vbat;}
 private:
     tcpClient *client;
     QString macAddress;
     QString function;
+    double vbat;
 signals:
     void disconnected();
     void shouldSendData(QString);
     void sendDataToMacs(QStringList,QString);
     void sendDataToFunction(QString,QString);
+    void requestDevicesList(void);
+
 private slots:
     void setMacAddress(QString nuMac){macAddress = nuMac;}
     void setFunction(QString nuFunction){function = nuFunction;}
+    void setVbat(double nuVbat){vbat = nuVbat;}
 
 };
 
@@ -61,8 +66,10 @@ signals:
     void dataReceived(QString);
     void solvedMacAddress(QString);
     void functionChosen(QString);
+    void vbatRead(double);
     void sendDataToMacs(QStringList,QString);
     void sendDataToFunction(QString,QString);
+    void requestDevicesList(void);
 private slots:
     void readData(void);
     void writeData(QString data);

@@ -6,6 +6,7 @@ controllerClient::controllerClient(QObject *parent) : QObject(parent)
     connect(this,SIGNAL(writeData(QString)),parent,SLOT(writeData(QString)));
     connect(this,SIGNAL(sendDataToMacs(QStringList,QString)),parent,SIGNAL(sendDataToMacs(QStringList,QString)));
     connect(this,SIGNAL(sendDataToFunction(QString,QString)),parent,SIGNAL(sendDataToFunction(QString,QString)));
+
     qDebug()<<"client is a controller";
     emit writeData("controller=YES");
 }
@@ -28,10 +29,18 @@ void controllerClient::dataReceived(QString data)
     QString function = "";
 
     qDebug()<<"controller <<"<<data;
-    QStringList fields = data.split("|",QString::SkipEmptyParts);
 
+
+
+    QStringList fields = data.split("|",QString::SkipEmptyParts);
     for(QString field:fields)
     {
+        if(field == "getdevices")
+        {
+            emit ((tcpClient*)parent())->requestDevicesList();
+            continue;
+        }
+
         QStringList values = field.split("=",QString::SkipEmptyParts);
         if(values.size()==2)
         {

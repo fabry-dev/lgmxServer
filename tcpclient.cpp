@@ -5,6 +5,7 @@ tcpClientControl::tcpClientControl(QObject *parent, int socketDescriptor):QObjec
 {
     macAddress = "";//initial mac address is empty
     function = "";//initial function is empty
+    vbat = -1;//initial vbat is -1 for not read
 
     QThread *clientThread = new QThread;
 
@@ -15,9 +16,10 @@ tcpClientControl::tcpClientControl(QObject *parent, int socketDescriptor):QObjec
     connect(this,SIGNAL(shouldSendData(QString)),client,SLOT(writeData(QString)));//used to trigger data transfer outside of the tcp thread
     connect(client,SIGNAL(solvedMacAddress(QString)),this,SLOT(setMacAddress(QString)));//save the mac address in control when made available
     connect(client,SIGNAL(functionChosen(QString)),this,SLOT(setFunction(QString)));//save the client function in control when made available
+    connect(client,SIGNAL(vbatRead(double)),this,SLOT(setVbat(double)));//save the batterie voltage reading when made available
     connect(client,SIGNAL(sendDataToFunction(QString,QString)),this,SIGNAL(sendDataToFunction(QString,QString)));
     connect(client,SIGNAL(sendDataToMacs(QStringList,QString)),this,SIGNAL(sendDataToMacs(QStringList,QString)));
-
+    connect(client,SIGNAL(requestDevicesList()),this,SIGNAL(requestDevicesList()));
 
 
     //cleanup connections
@@ -193,3 +195,5 @@ QString tcpClient::resolveMacAddress(bool *success)
 
 
 }
+
+

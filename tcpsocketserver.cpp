@@ -25,6 +25,7 @@ void tcpSocketServer::incomingConnection(qintptr socketDescriptor)
     connect(client,SIGNAL(disconnected()),this,SLOT(incomingDisconnection()));
     connect(client,SIGNAL(sendDataToFunction(QString,QString)),this,SLOT(sendDataToFunction(QString,QString)));
     connect(client,SIGNAL(sendDataToMacs(QStringList,QString)),this,SLOT(sendDataToMacs(QStringList,QString)));
+    connect(client,SIGNAL(requestDevicesList()),this,SLOT(sendDevicesDescriptionToMacs()));
     clients.push_back(client);//save client in the clients pool
 
 
@@ -44,6 +45,20 @@ void tcpSocketServer::incomingDisconnection()
 
 
 
+void tcpSocketServer::getDevicesInfos(void)
+{
+
+    for(auto client:clients)
+    {
+        if(client->getFunction()=="device")
+        {
+
+        }
+    }
+
+}
+
+
 //send data to max 1 client which mac address is macAddress
 void tcpSocketServer::sendDataToMac(QString macAddress,QString data)
 {
@@ -59,15 +74,21 @@ void tcpSocketServer::sendDataToMac(QString macAddress,QString data)
     qDebug()<<"Error, no client with mac address="<<macAddress;
 }
 
-
 //send data to all clients which mac address is macAddresses
 void tcpSocketServer::sendDataToMacs(QStringList macAddresses,QString data)
 {
+    bool success = false;
     for(auto client:clients)
     {
         if(macAddresses.contains(client->getMacAddress()))
+        {
+            success = true;
             client->sendData(data);
+        }
     }
+
+    if(!success)
+        qDebug()<<"no mac address found";
 
 }
 
@@ -85,3 +106,32 @@ void tcpSocketServer::sendDataToFunction(QString function,QString data)
 }
 
 
+//send device infos (mac lists and battery voltage) to the requesting controller
+void tcpSocketServer::sendDevicesDescriptionToMacs(void)
+{
+    QString msg;
+    QStringList macAddresses;
+    tcpClientControl *client = (tcpClientControl*)QObject::sender();
+    macAddresses.append(client->getMacAddress());
+    msg+="{";
+    for(auto device:clients)
+    {
+        if(device->getFunction()!="device")
+            continue;
+
+        if(msg.size()>1)
+            msg+=",";
+
+        QString data = "{mac="+device->getMacAddress()+",vbat="+QString::number(device->getVbat())+"}";
+        msg+=data;
+    }
+    msg+="}";
+
+    if(macAddresses.size()>0)
+    {
+    qDebug()<<"device list"<<msg;
+    qDebug()<<"sending to:"<<macAddresses;
+    }
+    //qDebug()<<"request from"<<macAddresses;
+    sendDataToMacs(macAddresses,msg);
+}
