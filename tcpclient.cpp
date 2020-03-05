@@ -87,24 +87,16 @@ void tcpClient::run()
 void tcpClient::readData()
 {
 
-    QDataStream in;
-    in.setDevice(tcpSocket);
-    in.setVersion(QDataStream::Qt_5_9);
-    in.startTransaction();
-
-    QString data;
-    in >> data;
-
-    if (!in.commitTransaction())
+    while(tcpSocket->canReadLine())
     {
-        qDebug()<<"non commit transaction";
-        //return;
+
+        QString data = tcpSocket->readLine();
+
+        qDebug()<<data.trimmed();
+        handleData(data.trimmed());
     }
 
-    handleData(data);
 
-    if(tcpSocket->bytesAvailable())//if we have data left to read, go again.
-        readData();
 
 }
 
@@ -132,11 +124,8 @@ void tcpClient::handleData(QString data)
 
 void tcpClient::writeData(QString data)
 {
-    QByteArray block;
-    QDataStream out(&block,QIODevice::WriteOnly);
-    out.setVersion(QDataStream::Qt_5_9);
-    out<<data;
-    tcpSocket->write(block);
+
+    tcpSocket->write(data.toStdString().c_str(),data.size());
    // qDebug()<<tcpSocket->localAddress().toString()<<"->"<<tcpSocket->peerAddress().toString()<<" >> "<<data;
 }
 

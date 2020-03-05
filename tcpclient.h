@@ -6,7 +6,6 @@
 #include "QTcpSocket"
 #include "QThread"
 #include "QDebug"
-#include "QDataStream"
 #include "controllerclient.h"
 #include "deviceclient.h"
 #include "qhostinfo.h"

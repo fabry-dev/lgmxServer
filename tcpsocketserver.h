@@ -8,7 +8,6 @@
 #include "qtimer.h"
 #include "QDebug"
 #include "qdatetime.h"
-#include "QDataStream"
 #include "tcpclient.h"
 #include "qthread.h"
 #include "qfile.h"
