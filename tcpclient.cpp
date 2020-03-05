@@ -124,6 +124,7 @@ void tcpClient::handleData(QString data)
 
 void tcpClient::writeData(QString data)
 {
+    data+="\n";
 
     tcpSocket->write(data.toStdString().c_str(),data.size());
    // qDebug()<<tcpSocket->localAddress().toString()<<"->"<<tcpSocket->peerAddress().toString()<<" >> "<<data;
