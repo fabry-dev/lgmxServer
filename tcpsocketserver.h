@@ -19,6 +19,12 @@ struct preset_t
     QString content;
 };
 
+struct state_t
+{
+    QString msg;
+    QString mac;
+};
+
 class tcpSocketServer : public QTcpServer
 {
     Q_OBJECT
@@ -29,10 +35,13 @@ private:
     QString PATH;
     std::vector<tcpClientControl*> clients;
     std::vector<preset_t> presetList;
+    std::vector<state_t> stateList;
+    QString defautState;
+    void storeMacMessage(QString mac, QString msg);
+    QString loadMacMessage(QString mac);
 
 private slots:
     void incomingDisconnection(void);
-    void sendDataToMac(QString macAddress, QString data);
     void sendDataToMacs(QStringList macAddresses,QString data);
     void sendDataToFunction(QString function,QString data);
     void sendDevicesDescriptionToMacs(void);

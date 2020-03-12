@@ -4,6 +4,7 @@
 tcpSocketServer::tcpSocketServer(QObject *parent,QString ip,qint64 port,QString PATH) : QTcpServer(parent),PATH(PATH)
 {
 
+    defautState = "";
     reloadPresets();
 
     while(!listen(QHostAddress(ip),port))
@@ -62,25 +63,17 @@ void tcpSocketServer::newMacRegistered(void)
         }
 
     }
+
+    QString msg = loadMacMessage(nuClient->getMacAddress());
+    if(msg!="")
+        sendDataToMacs(QStringList()<<nuClient->getMacAddress(),msg);
+
+
+
 }
 
 
 
-//send data to max 1 client which mac address is macAddress
-void tcpSocketServer::sendDataToMac(QString macAddress,QString data)
-{
-    for(auto client:clients)
-    {
-        if(client->getMacAddress() == macAddress)
-        {
-            qDebug()<<client->getFunction()<<":"<<client->getMacAddress()<<"<<"<<data;
-            client->sendData(data);
-            return;
-        }
-    }
-    //if we reached this, data did not go
-    qDebug()<<"Error, no client with mac address="<<macAddress;
-}
 
 //send data to all clients which mac address is macAddresses
 void tcpSocketServer::sendDataToMacs(QStringList macAddresses,QString data)
@@ -93,6 +86,8 @@ void tcpSocketServer::sendDataToMacs(QStringList macAddresses,QString data)
             success = true;
             qDebug()<<client->getFunction()<<":"<<client->getMacAddress()<<"<<"<<data;
             client->sendData(data);
+            if(client->getFunction() == "device")
+                storeMacMessage(client->getMacAddress(),data);//store the specific message
         }
     }
 
@@ -110,9 +105,17 @@ void tcpSocketServer::sendDataToFunction(QString function,QString data)
         if(client->getFunction() == function)
         {
             qDebug()<<client->getFunction()<<":"<<client->getMacAddress()<<"<<"<<data;
+            if(function=="device")
+            {
+                defautState = data;//store the default message
+                storeMacMessage(client->getMacAddress(),data);//store the specific message
+            }
+
             client->sendData(data);
         }
     }
+
+
 }
 
 
@@ -251,4 +254,36 @@ void tcpSocketServer::loadPreset(QString presetName)
         qDebug()<<"preset "<<presetName<<"not found";
 
 
+}
+
+//store the last message sent to a mac address so that we cann resend it upon reconnection
+void tcpSocketServer::storeMacMessage(QString mac,QString msg)
+{
+    for(int i =0;i<stateList.size();i++)
+    {
+        if(stateList[i].mac==mac)
+        {
+            stateList[i].msg = msg;
+            return;
+        }
+    }
+
+    //if we reached this par the mac was not found, we need to create a new entry
+    struct state_t nuState;
+    nuState.mac = mac;
+    nuState.msg = msg;
+    stateList.push_back(nuState);
+}
+
+//load the last message sent to this mac address
+QString tcpSocketServer::loadMacMessage(QString mac)
+{
+
+    for(auto state:stateList)
+    {
+        if(state.mac==mac)
+            return state.msg;
+    }
+    //if we reached this, let's revert to default
+    return defautState;
 }

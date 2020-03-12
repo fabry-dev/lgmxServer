@@ -14,6 +14,7 @@ public:
     ~controllerClient(void);
 private:
     QString PATH;
+    QString lastMsg;
 signals:
     void writeData(QString);
     void sendDataToMacs(QStringList addresses,QString data);
