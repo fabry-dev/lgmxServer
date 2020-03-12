@@ -39,6 +39,7 @@ private slots:
     void reloadPresets(void);
     void loadPreset(QString presetName);
     void sendPresetList(QString function,QStringList addresses);
+    void newMacRegistered(void);
 protected:
     void incomingConnection(qintptr socketDescriptor) override;
 

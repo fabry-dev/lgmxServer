@@ -15,6 +15,8 @@ tcpClientControl::tcpClientControl(QObject *parent, int socketDescriptor,QString
     connect(client,SIGNAL(disconnected()),this,SIGNAL(disconnected()));//forward disconnect signal from client to client control.
     connect(this,SIGNAL(shouldSendData(QString)),client,SLOT(writeData(QString)));//used to trigger data transfer outside of the tcp thread
     connect(client,SIGNAL(solvedMacAddress(QString)),this,SLOT(setMacAddress(QString)));//save the mac address in control when made available
+    connect(client,SIGNAL(solvedMacAddress(QString)),this,SIGNAL(solvedMacAddress(QString)));//propagate the mac address signal to the client control
+    connect(this,SIGNAL(solvedMacAddress(QString)),parent,SLOT(newMacRegistered()));//let the server know a new mac adress registered
     connect(client,SIGNAL(functionChosen(QString)),this,SLOT(setFunction(QString)));//save the client function in control when made available
     connect(client,SIGNAL(vbatRead(double)),this,SLOT(setVbat(double)));//save the batterie voltage reading when made available
     connect(client,SIGNAL(sendDataToFunction(QString,QString)),parent,SLOT(sendDataToFunction(QString,QString)));
@@ -23,6 +25,7 @@ tcpClientControl::tcpClientControl(QObject *parent, int socketDescriptor,QString
     connect(client,SIGNAL(reloadPresets()),parent,SLOT(reloadPresets()));
     connect(client,SIGNAL(sendPresetsList(QString,QStringList)),parent,SLOT(sendPresetList(QString,QStringList)));
     connect(client,SIGNAL(loadPreset(QString)),parent,SLOT(loadPreset(QString)));
+    connect(this,SIGNAL(disconnectFromHost()),client,SLOT(disconnectFromHost()));
 
     //cleanup connections
     connect(client,SIGNAL(disconnected()),clientThread,SLOT(quit()));//stop thread when client is deleted
@@ -40,6 +43,12 @@ tcpClientControl::tcpClientControl(QObject *parent, int socketDescriptor,QString
 
 
 
+
+tcpClientControl::~tcpClientControl(void)
+{
+//qDebug()<<"client ctrl destroyed";
+
+}
 
 tcpClient::tcpClient(QObject *parent, int socketDescriptor,QString PATH):QObject(parent),socketDescriptor(socketDescriptor),PATH(PATH)
 {
@@ -63,6 +72,7 @@ void tcpClient::run()
         emit error(tcpSocket->error());
         return;
     }
+
 
     connect(tcpSocket,SIGNAL(disconnected()),this,SIGNAL(disconnected()));//let the server know the client disconnected
     connect(tcpSocket,SIGNAL(readyRead()),this,SLOT(readData()));
@@ -127,7 +137,7 @@ void tcpClient::writeData(QString data)
     data+="\n";
 
     tcpSocket->write(data.toStdString().c_str(),data.size());
-   // qDebug()<<tcpSocket->localAddress().toString()<<"->"<<tcpSocket->peerAddress().toString()<<" >> "<<data;
+    // qDebug()<<tcpSocket->localAddress().toString()<<"->"<<tcpSocket->peerAddress().toString()<<" >> "<<data;
 }
 
 void tcpClient::makeClientController()
@@ -198,4 +208,8 @@ QString tcpClient::resolveMacAddress(bool *success)
 
 }
 
+void tcpClient::disconnectFromHost(void)
+{
 
+    tcpSocket->disconnectFromHost();
+}

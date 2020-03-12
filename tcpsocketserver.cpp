@@ -44,6 +44,25 @@ void tcpSocketServer::incomingDisconnection()
 }
 
 
+void tcpSocketServer::newMacRegistered(void)
+{
+    tcpClientControl * nuClient = (tcpClientControl*)QObject::sender();
+
+    for(auto client:clients)
+    {
+        if(client == nuClient)//ignore the new client
+            continue;
+
+
+
+        if((client->getMacAddress()!="")&&(client->getMacAddress()==nuClient->getMacAddress()))
+        {
+            qDebug()<<"mac address"<<client->getMacAddress()<<"was previously registered, disconnecting now.";
+            emit client->disconnectFromHost();
+        }
+
+    }
+}
 
 
 
